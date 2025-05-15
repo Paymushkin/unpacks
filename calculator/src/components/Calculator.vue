@@ -20,6 +20,14 @@
           </label>
         </div>
         <div>
+          <label for="free-commission-input">Комиссия Free:</label>
+          <input type="number" v-model="freeCommission" id="free-commission-input" step="0.01" min="0" max="1" />
+        </div>
+        <div>
+          <label for="standart-commission-input">Комиссия Standart:</label>
+          <input type="number" v-model="standartCommission" id="standart-commission-input" step="0.01" min="0" max="1" />
+        </div>
+        <div>
           <button @click="calculate">Рассчитать</button>
         </div>
         <div v-if="result" class="results">
@@ -46,7 +54,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from 'vue';
+import { defineComponent, ref, watch } from 'vue';
 
 export default defineComponent({
   name: 'Calculator',
@@ -55,29 +63,53 @@ export default defineComponent({
     const transactions = ref(0);
     const isGross = ref(true);
     const result = ref<{ free: number; standartMonthly: number; standartSemiAnnual: number; standartAnnual: number } | null>(null);
+    const freeCommission = ref(0.2);
+    const standartCommission = ref(0.1);
 
-    const calculate = () => {
-      let freeCost, standartMonthly, standartSemiAnnual, standartAnnual;
-
+    const calculateFree = () => {
+      let freeCost;
       if (isGross.value) {
-        const grossPrice = price.value / (1 - 0.2);
+        const grossPrice = price.value / (1 - freeCommission.value);
         freeCost = transactions.value * Math.max(grossPrice - price.value, 150);
-        standartMonthly = transactions.value * Math.max(grossPrice * 0.1, 70) + 6990;
-        standartSemiAnnual = transactions.value * Math.max(grossPrice * 0.1, 70) + 5990;
-        standartAnnual = transactions.value * Math.max(grossPrice * 0.1, 70) + 4990;
       } else {
-        freeCost = transactions.value * Math.max(price.value * 0.2, 150);
-        standartMonthly = transactions.value * Math.max(price.value * 0.1, 70) + 6900;
-        standartSemiAnnual = transactions.value * Math.max(price.value * 0.1, 70) + 5990;
-        standartAnnual = transactions.value * Math.max(price.value * 0.1, 70) + 4990;
+        freeCost = transactions.value * Math.max(price.value * freeCommission.value, 150);
       }
       result.value = {
+        ...result.value,
         free: freeCost,
+      };
+    };
+
+    const calculateStandart = () => {
+      let standartMonthly, standartSemiAnnual, standartAnnual;
+      if (isGross.value) {
+        const grossPrice = price.value / (1 - freeCommission.value);
+        standartMonthly = transactions.value * Math.max(grossPrice * standartCommission.value, 70) + 6990;
+        standartSemiAnnual = transactions.value * Math.max(grossPrice * standartCommission.value, 70) + 5990;
+        standartAnnual = transactions.value * Math.max(grossPrice * standartCommission.value, 70) + 4990;
+      } else {
+        standartMonthly = transactions.value * Math.max(price.value * standartCommission.value, 70) + 6990;
+        standartSemiAnnual = transactions.value * Math.max(price.value * standartCommission.value, 70) + 5990;
+        standartAnnual = transactions.value * Math.max(price.value * standartCommission.value, 70) + 4990;
+      }
+      result.value = {
+        ...result.value,
         standartMonthly,
         standartSemiAnnual,
         standartAnnual,
       };
     };
+
+    const calculate = () => {
+      calculateFree();
+      calculateStandart();
+    };
+
+    freeCommission.value = parseFloat(freeCommission.value.toFixed(2));
+    standartCommission.value = parseFloat(standartCommission.value.toFixed(2));
+
+    watch([freeCommission, price, transactions, isGross], calculateFree);
+    watch([standartCommission, price, transactions, isGross], calculateStandart);
 
     return {
       price,
@@ -85,6 +117,8 @@ export default defineComponent({
       isGross,
       result,
       calculate,
+      freeCommission,
+      standartCommission,
     };
   },
 });
