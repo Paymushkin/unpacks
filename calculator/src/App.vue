@@ -18,7 +18,7 @@ export default defineComponent({
 
 <style scoped>
 header {
-  line-height: 1.5;
+  line-height: 1.25;
 }
 
 .logo {
