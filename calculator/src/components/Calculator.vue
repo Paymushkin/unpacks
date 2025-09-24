@@ -11,21 +11,38 @@
           <label for="transactions-input">Количество сделок в месяц:</label>
           <input type="number" v-model="transactions" id="transactions-input" placeholder="Введите количество сделок в месяц" />
         </div>
-        <div>
-          <label>
-            <input type="radio" v-model="isGross" :value="true" @change="calculate" /> Рассчитывать брутто
-          </label>
-          <label>
-            <input type="radio" v-model="isGross" :value="false" @change="calculate" /> Рассчитывать нетто
-          </label>
+        <div v-if="showAdminControls">
+          <div>
+            <label>
+              <input type="radio" v-model="isGross" :value="true" @change="calculate" /> Рассчитывать брутто
+            </label>
+            <label>
+              <input type="radio" v-model="isGross" :value="false" @change="calculate" /> Рассчитывать нетто
+            </label>
+          </div>
+          <div>
+            <label for="free-commission-input">Комиссия Free:</label>
+            <input type="number" v-model="freeCommission" id="free-commission-input" step="0.01" min="0" max="1" />
+          </div>
+          <div>
+            <label for="standart-commission-input">Комиссия Standart:</label>
+            <input type="number" v-model="standartCommission" id="standart-commission-input" step="0.01" min="0" max="1" />
+          </div>
         </div>
-        <div>
-          <label for="free-commission-input">Комиссия Free:</label>
-          <input type="number" v-model="freeCommission" id="free-commission-input" step="0.01" min="0" max="1" />
-        </div>
-        <div>
-          <label for="standart-commission-input">Комиссия Standart:</label>
-          <input type="number" v-model="standartCommission" id="standart-commission-input" step="0.01" min="0" max="1" />
+        <div v-if="showAdminControls">
+          <h3>Редактирование цен тарифов</h3>
+          <div>
+            <label for="standart-monthly-base">Базовая цена Standart (месячная):</label>
+            <input type="number" v-model="standartMonthlyBase" id="standart-monthly-base" />
+          </div>
+          <div>
+            <label for="standart-semiannual-base">Базовая цена Standart (полугодовая):</label>
+            <input type="number" v-model="standartSemiAnnualBase" id="standart-semiannual-base" />
+          </div>
+          <div>
+            <label for="standart-annual-base">Базовая цена Standart (годовая):</label>
+            <input type="number" v-model="standartAnnualBase" id="standart-annual-base" />
+          </div>
         </div>
         <div>
           <button @click="calculate">Рассчитать</button>
@@ -61,10 +78,15 @@ export default defineComponent({
   setup() {
     const price = ref(0);
     const transactions = ref(0);
-    const isGross = ref(true);
+    const isGross = ref(false);
     const result = ref<{ free: number; standartMonthly: number; standartSemiAnnual: number; standartAnnual: number } | null>(null);
     const freeCommission = ref(0.2);
     const standartCommission = ref(0.1);
+    const standartMonthlyBase = ref(5990);
+    const standartSemiAnnualBase = ref(4990);
+    const standartAnnualBase = ref(3990);
+
+    const showAdminControls = ref(window.location.search.includes('admin'));
 
     const calculateFree = () => {
       let freeCost;
@@ -84,13 +106,13 @@ export default defineComponent({
       let standartMonthly, standartSemiAnnual, standartAnnual;
       if (isGross.value) {
         const grossPrice = price.value / (1 - freeCommission.value);
-        standartMonthly = transactions.value * Math.max(grossPrice * standartCommission.value, 70) + 6990;
-        standartSemiAnnual = transactions.value * Math.max(grossPrice * standartCommission.value, 70) + 5990;
-        standartAnnual = transactions.value * Math.max(grossPrice * standartCommission.value, 70) + 4990;
+        standartMonthly = transactions.value * Math.max(grossPrice * standartCommission.value, 70) + standartMonthlyBase.value;
+        standartSemiAnnual = transactions.value * Math.max(grossPrice * standartCommission.value, 70) + standartSemiAnnualBase.value;
+        standartAnnual = transactions.value * Math.max(grossPrice * standartCommission.value, 70) + standartAnnualBase.value;
       } else {
-        standartMonthly = transactions.value * Math.max(price.value * standartCommission.value, 70) + 6990;
-        standartSemiAnnual = transactions.value * Math.max(price.value * standartCommission.value, 70) + 5990;
-        standartAnnual = transactions.value * Math.max(price.value * standartCommission.value, 70) + 4990;
+        standartMonthly = transactions.value * Math.max(price.value * standartCommission.value, 70) + standartMonthlyBase.value;
+        standartSemiAnnual = transactions.value * Math.max(price.value * standartCommission.value, 70) + standartSemiAnnualBase.value;
+        standartAnnual = transactions.value * Math.max(price.value * standartCommission.value, 70) + standartAnnualBase.value;
       }
       result.value = {
         ...result.value,
@@ -110,6 +132,7 @@ export default defineComponent({
 
     watch([freeCommission, price, transactions, isGross], calculateFree);
     watch([standartCommission, price, transactions, isGross], calculateStandart);
+    watch([standartMonthlyBase, standartSemiAnnualBase, standartAnnualBase], calculateStandart);
 
     return {
       price,
@@ -119,6 +142,10 @@ export default defineComponent({
       calculate,
       freeCommission,
       standartCommission,
+      standartMonthlyBase,
+      standartSemiAnnualBase,
+      standartAnnualBase,
+      showAdminControls,
     };
   },
 });
